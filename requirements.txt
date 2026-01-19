@@ -1,0 +1,12 @@
+flask
+python-dotenv
+faiss-cpu
+numpy
+PyMuPDF
+python-docx
+requests
+beautifulsoup4
+ollama
+fastapi
+sqlalchemy
+sympy
