@@ -232,10 +232,8 @@ body, html {
     right: 30px;
     bottom: 20px;
     z-index: 80;
-    pointer-events: none; /* inner elements capture events */
   }
   .chat-input-wrapper {
-    pointer-events: auto;
     margin: 0 auto;
     max-width: 900px;
   }

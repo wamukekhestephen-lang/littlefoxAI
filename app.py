@@ -110,7 +110,6 @@ def ask():
 def chats():
     return jsonify(get_chat_list())
 
-
 # =========================
 # CHAT HISTORY
 # =========================
