@@ -169,7 +169,7 @@ def main():
     print(f"\nTotal: {passed}/{total} tests passed")
     
     if passed == total:
-        print("\n✅ ALL VERIFICATIONS PASSED!")
+        print("\n[PASS] ALL VERIFICATIONS PASSED!")
         print("\nAutomatic Connectivity Detection System is READY FOR USE")
         print("\nFeatures Enabled:")
         print("  • Automatic internet detection (every 15 seconds)")

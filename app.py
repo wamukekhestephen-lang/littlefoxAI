@@ -1,12 +1,10 @@
-from flask import (
-    Flask,
-    render_template,
-    request,
-    Response,
-    jsonify,
-    stream_with_context,
-    session
-)
+print(">>> IMPORT START <<<")
+
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse, JSONResponse, HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import time
 import json
 import os
@@ -14,18 +12,16 @@ import sys
 import uuid
 import logging
 import re
+import traceback
 from functools import wraps
 from html import escape
 from datetime import timedelta
 from logging.handlers import RotatingFileHandler
+from typing import Generator, Optional
 
-# Fix encoding for Windows console output
-if sys.platform == 'win32':
-    import io
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+print(">>> FASTAPI IMPORTS OK <<<")
 
-from main import comprehensive_response
+from groq_client import groq_response_streaming
 from web_search import search_web, fetch_page
 from response_formatter import format_response
 from response_quality import check_response
@@ -47,19 +43,14 @@ from database import (
     delete_chat
 )
 
+print(">>> CUSTOM IMPORTS OK <<<")
+
 # =========================
 # SECURITY IMPORTS
 # =========================
-try:
-    from flask_cors import CORS
-except ImportError:
-    CORS = None
-    
-try:
-    from flask_limiter import Limiter
-    from flask_limiter.util import get_remote_address
-except ImportError:
-    Limiter = None
+CORS_AVAILABLE = True
+
+print(">>> SECURITY IMPORTS OK <<<")
 
 # =========================
 # ENVIRONMENT VALIDATION
@@ -116,29 +107,39 @@ except RuntimeError as e:
     print(f"[ERROR] Configuration validation failed: {e}")
     raise
 
+print(">>> CONFIG OK <<<")
+
 # =========================
 # APP SETUP WITH SECURITY
 # =========================
-app = Flask(__name__)
+app = FastAPI(title="AI Assistant")
 
-# Secret key management
-secret_key = config['SECRET_KEY']
-if not secret_key:
-    # Default to development mode for direct execution
-    secret_key = "dev-temp-key-" + str(uuid.uuid4())
-    print("[WARN] Using temporary secret key for development only")
+print(">>> APP INSTANCE OK <<<")
 
-app.secret_key = secret_key
+# Mount static files
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    print(">>> STATIC FILES MOUNTED <<<")
 
-# Secure session configuration
-app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Only true in production with HTTPS
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
-    SESSION_REFRESH_EACH_REQUEST=True,
-    JSON_SORT_KEYS=False
+# Setup templates
+if os.path.exists("templates"):
+    templates = Jinja2Templates(directory="templates")
+    print(">>> TEMPLATES OK <<<")
+else:
+    templates = None
+    print(">>> TEMPLATES DIRECTORY NOT FOUND <<<")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+print(">>> CORS ENABLED <<<")
+print(">>> SESSION CONFIG OK <<<")
 
 # =========================
 # LOGGING SETUP
@@ -169,96 +170,17 @@ def setup_logging():
     console_handler.setFormatter(formatter)
     file_handler.setFormatter(formatter)
     
-    # Apply to app logger
-    app.logger.addHandler(console_handler)
-    app.logger.addHandler(file_handler)
-    app.logger.setLevel(getattr(logging, log_level))
+    # Create logger
+    logger = logging.getLogger(__name__)
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logger.setLevel(getattr(logging, log_level))
     
-    # Suppress noisy logs
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)
-    
-    return app.logger
+    return logger
 
 logger = setup_logging()
 
-# =========================
-# CORS PROTECTION
-# =========================
-if CORS:
-    allowed_origins = config['ALLOWED_ORIGINS'].split(',') if config['ALLOWED_ORIGINS'] else []
-    allowed_origins = [o.strip() for o in allowed_origins if o.strip()]
-    
-    # Always enable CORS (for development: localhost, for production: configured origins)
-    if not allowed_origins:
-        # Development mode: allow all localhost origins
-        allowed_origins = ['http://localhost:*', 'http://127.0.0.1:*', 'http://localhost:5000', 'http://127.0.0.1:5000']
-    
-    CORS(app, 
-         origins=allowed_origins,
-         supports_credentials=True,
-         allow_headers=['Content-Type', 'Authorization'],
-         methods=['GET', 'POST', 'OPTIONS'])
-    logger.info(f"CORS enabled for origins: {allowed_origins}")
-else:
-    logger.warning("flask-cors not installed - CORS protection disabled")
-
-# =========================
-# RATE LIMITING
-# =========================
-limiter = None
-if Limiter:
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
-    )
-    logger.info("Rate limiting enabled (flask-limiter available)")
-else:
-    logger.warning("flask-limiter not installed - Rate limiting disabled")
-
-# =========================
-# SECURITY HEADERS
-# =========================
-@app.after_request
-def security_headers(response):
-    """Add security headers to all responses"""
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    
-    # HSTS only in production
-    if os.getenv('FLASK_ENV') != 'development':
-        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'"
-    
-    return response
-
-# =========================
-# ERROR HANDLERS
-# =========================
-@app.errorhandler(400)
-def bad_request(error):
-    logger.warning(f"Bad request: {error}")
-    return jsonify({"error": "Bad request"}), 400
-
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Resource not found"}), 404
-
-@app.errorhandler(429)
-def rate_limit_handler(error):
-    logger.warning(f"Rate limit exceeded: {error}")
-    return jsonify({"error": "Too many requests. Please try again later."}), 429
-
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Server Error: {error}", exc_info=True)
-    if app.debug:
-        return jsonify({"error": str(error)}), 500
-    return jsonify({"error": "Internal server error"}), 500
+print(">>> LOGGING OK <<<")
 
 # =========================
 # INPUT VALIDATION
@@ -289,6 +211,8 @@ def sanitize_input(text, max_length=5000):
     
     return text
 
+print(">>> INPUT VALIDATION OK <<<")
+
 # =========================
 # DATABASE INITIALIZATION
 # =========================
@@ -299,429 +223,239 @@ except Exception as e:
     logger.error(f"Failed to initialize database: {e}")
     raise
 
+print(">>> DATABASE OK <<<")
+
 # Auto-detect connectivity
-connectivity_status = check_connectivity()
-current_mode = {"online": connectivity_status["online"]}
-logger.info(f"Initial connectivity status: {connectivity_status['status']}")
-logger.info(f"Mode: {'[ONLINE - Internet]' if current_mode['online'] else '[OFFLINE - Ollama]'}")
+startup_connectivity = check_connectivity()
+current_mode = {"online": startup_connectivity["online"]}
+logger.info(f"Initial connectivity status: {startup_connectivity['status']}")
+logger.info(f"Mode: [GROQ - Ultra-Fast Cloud Inference]")
+
+print(">>> CONNECTIVITY OK <<<")
 
 # =========================
-# RATE LIMITING HELPER
+# UTILITY FUNCTIONS
 # =========================
-def apply_rate_limit(limit_str):
-    """Helper to apply rate limiting if enabled"""
-    def decorator(f):
-        if limiter and config.get('RATE_LIMIT_ENABLED', True):
-            return limiter.limit(limit_str)(f)
-        return f
-    return decorator
+def is_short_conversational(text: str) -> bool:
+    """Determine if a query is short/conversational (no web search needed)"""
+    text = text.strip().lower()
+    return (
+        len(text) < 6
+        or text in {"hi", "hello", "hey", "yo", "sup", "ok", "thanks"}
+    )
 
-# =========================
-# AUTH ROUTES
-# =========================
-@app.route("/auth/guest", methods=["POST"])
-@apply_rate_limit("10 per minute")
-def guest_login():
-    """Create guest session"""
-    result = create_guest_session()
-    response = jsonify(result)
-    response.set_cookie("token", result["token"], max_age=86400*7, httponly=True, samesite="Lax")
-    session["user_id"] = result["user_id"]
-    session["is_guest"] = True
-    return response
+def is_browsing_query(text: str) -> bool:
+    """Determine if a query needs web search (opposite of is_short_conversational)"""
+    return not is_short_conversational(text)
 
-
-@app.route("/auth/signup", methods=["POST"])
-@apply_rate_limit("5 per minute")
-def signup():
-    """Register new user"""
-    data = request.json or {}
-    username = sanitize_input(data.get("username", ""), max_length=100)
-    email = sanitize_input(data.get("email", ""), max_length=254)
-    password = data.get("password", "").strip()
-    
-    if not username or not email or not password:
-        return jsonify({"error": "Missing fields"}), 400
-    
-    result, error = register_user(username, email, password)
-    if error:
-        return jsonify({"error": error}), 400
-    
-    response = jsonify(result)
-    response.set_cookie("token", result["token"], max_age=86400*7, httponly=True, samesite="Lax")
-    session["user_id"] = result["user_id"]
-    session["is_guest"] = False
-    return response
-
-
-@app.route("/auth/login", methods=["POST"])
-@apply_rate_limit("5 per minute")
-def login():
-    """Login user"""
-    data = request.json or {}
-    username = sanitize_input(data.get("username", ""), max_length=100)
-    password = data.get("password", "").strip()
-    
-    if not username or not password:
-        return jsonify({"error": "Missing fields"}), 400
-    
-    result, error = login_user(username, password)
-    if error:
-        return jsonify({"error": error}), 401
-    
-    response = jsonify(result)
-    response.set_cookie("token", result["token"], max_age=86400*7, httponly=True, samesite="Lax")
-    session["user_id"] = result["user_id"]
-    session["is_guest"] = False
-    return response
-
-
-@app.route("/auth/logout", methods=["POST"])
-def logout():
-    """Logout user"""
-    session.clear()
-    response = jsonify({"status": "ok"})
-    response.set_cookie("token", "", max_age=0)
-    return response
-
-
-@app.route("/auth/status", methods=["GET"])
-def auth_status():
-    """Get current auth status"""
-    user_id, is_guest = get_current_user_from_request()
-    if user_id:
-        return jsonify({
-            "authenticated": True,
-            "user_id": user_id,
-            "is_guest": is_guest
-        })
-    return jsonify({"authenticated": False})
-
-
-# =========================
-# CONNECTIVITY STATUS
-# =========================
-
-@app.route("/status/connectivity", methods=["GET"])
-def connectivity_status():
-    """Get current connectivity status"""
-    status = check_connectivity()
-    return jsonify({
-        "online": status["online"],
-        "status": status["status"],
-        "mode": "[ONLINE - Internet]" if status["online"] else "[OFFLINE - Ollama]"
-    })
-
-
-# =========================
-# PREFERENCES ROUTES
-# =========================
-
-@app.route("/user/preferences", methods=["GET"])
-def get_preferences():
-    """Get user preferences"""
-    user_id, is_guest = get_current_user_from_request()
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    prefs = get_user_preferences(user_id)
-    return jsonify(prefs)
-
-
-@app.route("/user/preferences", methods=["POST"])
-def update_preferences():
-    """Update user preferences"""
-    user_id, is_guest = get_current_user_from_request()
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    if is_guest:
-        return jsonify({"error": "Guests cannot save preferences"}), 403
-    
-    data = request.json or {}
-    result = update_user_preferences(user_id, data)
-    
-    if "error" in result:
-        return jsonify(result), 400
-    
-    return jsonify(result)
-
+print(">>> UTILITY FUNCTIONS OK <<<")
 
 # =========================
 # ROUTES
 # =========================
 
-@app.route("/")
-def home():
-    return render_template("index.html")
+from fastapi.responses import HTMLResponse
 
+@app.get("/")
+async def home(request: Request):
+    """Serve home page using Jinja2 template"""
+    if templates is None:
+        return HTMLResponse(content="<h1>AI Assistant API</h1><p>Templates not found</p>")
+    return templates.TemplateResponse("index.html", {"request": request})
 
-# =========================
-# ASK / STREAM RESPONSE
-# =========================
-@app.route("/ask", methods=["POST"])
-@apply_rate_limit("30 per minute")
-def ask():
+@app.post("/ask")
+async def ask(req: Request):
+    """Streaming POST endpoint - returns SSE stream for frontend consumption"""
+    logger.info(">>> /ask HIT (POST) <<<")
+
     try:
-        data = request.json or {}
+        raw_body = await req.body()
+        try:
+            data = json.loads(raw_body.decode("utf-8-sig")) or {}
+        except Exception:
+            logger.warning("[ASK] Invalid JSON body received")
+            def error_gen():
+                yield f"data: {json.dumps({'type': 'error', 'text': 'Invalid JSON'})}\n\n"
+            return StreamingResponse(error_gen(), media_type="text/event-stream")
+
         user_input = sanitize_input(data.get("message", ""), max_length=5000)
         chat_id = sanitize_input(data.get("chat_id", "default"), max_length=100)
 
         if not user_input:
-            return Response("", mimetype="text/event-stream")
-        
-        # Get current user
-        user_id, is_guest = get_current_user_from_request()
-        if not user_id:
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        # Convert user_id to string for consistency with db
-        user_id = str(user_id)
+            def empty_gen():
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            return StreamingResponse(empty_gen(), media_type="text/event-stream")
 
-        # Save user message immediately
+        user_id = "debug-user"
         save_message(chat_id, user_id, "user", user_input)
-        
-        # Get user preferences for response formatting
-        user_prefs = get_user_preferences(int(user_id)) if not is_guest else {}
-        
-        # Auto-detect connectivity and update mode
-        connectivity = check_connectivity()
-        current_mode["online"] = connectivity["online"]
+        logger.info(f"[ASK] Input: {user_input}")
 
-        def generate():
-            full_response = ""
-            
-            # Show current mode to user
-            mode_indicator = "[ONLINE]" if current_mode["online"] else "[OFFLINE]"
-            yield f"data: {json.dumps({'type': 'status', 'text': f'{mode_indicator}'})}\n\n"
-
-            # Let comprehensive_response handle everything with quality checking
-            # Returns: (response_text, quality_report)
-            logger.info(f"Processing request with mode: {current_mode['online']}")
-            response_text, quality_report = comprehensive_response(user_input, mode="online" if current_mode["online"] else "offline")
-            
-            # Run quality check - REPLACES Wikipedia-only responses with web search
-            from response_quality import check_response
-            quality_check = check_response(response_text, query=user_input, response_type="general")
-            
-            # Use response (original, replaced, or truncated)
-            response_text = quality_check.get('response_text', response_text)
-            
-            # Log if replacement occurred
-            if quality_check.get('replaced', False):
-                logger.info(f"Response replaced: Wikipedia-only detected, using web search results for: {user_input}")
-            elif quality_check.get('blocked', False):
-                logger.warning(f"Response would be blocked: {user_input}")
-            
-            # Log quality information
-            confidence = quality_check.get('confidence_level', 'UNKNOWN')
-            has_issues = len(quality_check.get('issues', [])) > 0
-            replaced = quality_check.get('replaced', False)
-            logger.info(f"Response confidence: {confidence}, Issues: {has_issues}, Replaced: {replaced}")
-            
-            # Apply formatting with quality metadata
-            if not current_mode["online"]:
-                response_text = format_response(
-                    response_text, 
-                    user_prefs,
-                    confidence_level=quality_check.get('confidence_level'),
-                    sources=quality_check.get('sources', [])
-                )
-            
-            # Add replacement notice (but hide confidence from user)
-            if quality_check.get('replaced', False):
-                indicator = f"\n[VERIFIED - Web Search Results]\n[This response replaced Wikipedia content for accuracy]"
-                response_text += indicator
-            # Confidence levels are logged but not shown to user for cleaner interface
-
-            # Stream response immediately (no artificial delays)
-            for word in response_text.split():
-                chunk = word + " "
-                full_response += chunk
-                yield f"data: {json.dumps({'type': 'text', 'text': chunk})}\n\n"
-
-            # Save assistant response
-            save_message(chat_id, user_id, "assistant", full_response.strip())
-
-            yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-        return Response(stream_with_context(generate()), mimetype="text/event-stream")
-    
-    except Exception as e:
-        logger.error(f"Error in /ask endpoint: {e}", exc_info=True)
-        return jsonify({"error": "Internal server error"}), 500
-
-
-# =========================
-# VERIFIED WEB SEARCH ENDPOINT
-# =========================
-@app.route("/ask-verified", methods=["POST"])
-@apply_rate_limit("20 per minute")
-def ask_verified():
-    """
-    Enhanced /ask endpoint that verifies responses against live web search results.
-    Prevents hallucinations by cross-checking against real sources.
-    Returns confidence levels and verified sources.
-    """
-    try:
-        data = request.json or {}
-        user_input = sanitize_input(data.get("message", ""), max_length=5000)
-        chat_id = sanitize_input(data.get("chat_id", "default"), max_length=100)
-
-        if not user_input:
-            return jsonify({"error": "No message provided"}), 400
-        
-        # Get current user
-        user_id, is_guest = get_current_user_from_request()
-        if not user_id:
-            return jsonify({"error": "Unauthorized"}), 401
-        
-        # Save user message
-        user_id = str(user_id)
-        save_message(chat_id, user_id, "user", user_input)
-        
-        # Get connectivity status
-        connectivity = check_connectivity()
-        current_mode["online"] = connectivity["online"]
-
-        def generate_verified():
-            """Generate response with web verification"""
+        def generate() -> Generator[str, None, None]:
+            """Generator for streaming SSE response"""
             try:
-                from web_search import search_web, fetch_page
+                # Immediate heartbeat
+                yield f"data: {json.dumps({'type': 'status', 'text': '[stream open]'})}\n\n"
                 
-                # Step 1: Generate initial response
-                response_text, quality_report = comprehensive_response(user_input, mode="online")
-                
-                # Step 2: Perform web search for verification
-                logger.info(f"Verifying response with web search: {user_input[:50]}")
-                web_sources = search_web(user_input, max_results=3)
-                
-                # Step 3: Run quality check WITH web verification
-                quality_check = check_response(
-                    response_text,
-                    sources=web_sources,
-                    response_type="web_search",
-                    query=user_input
-                )
-                
-                # Step 4: Build response with verification metadata
-                verification_badge = ""
-                if quality_check['web_verified']:
-                    verification_badge = "\n[VERIFIED] - Information checked against web sources"
-                elif quality_check['verified_sources']:
-                    verification_badge = f"\n[PARTIALLY VERIFIED] - Found {len(quality_check['verified_sources'])} supporting sources"
+                # 🚀 FAST PATH — NO BROWSING
+                if is_short_conversational(user_input):
+                    logger.info("[ASK] Conversational -> Groq only")
+                    stream = groq_response_streaming(user_input)
+                    if stream is None:
+                        yield f"data: {json.dumps({'type': 'text', 'text': '[Groq API not available]'})}\n\n"
+                    else:
+                        full_text = ""
+                        for chunk in stream:
+                            logger.info(f"[GROQ] chunk: {chunk}")
+                            full_text += chunk
+                            yield f"data: {json.dumps({'type': 'text', 'text': chunk})}\n\n"
+                        if full_text:
+                            save_message(chat_id, user_id, "assistant", full_text)
                 else:
-                    verification_badge = f"\n[UNVERIFIED] - Could not verify with web sources (Confidence: {quality_check['confidence_level']})"
+                    # 🌍 BROWSING PATH
+                    logger.info("[ASK] Browsing query detected")
+                    search_results = search_web(user_input, max_results=3)
+
+                    if not search_results:
+                        msg = "I couldn't find relevant information."
+                        yield f"data: {json.dumps({'type': 'text', 'text': msg})}\n\n"
+                    else:
+                        extracted = []
+                        for r in search_results:
+                            try:
+                                url = r.get("url") or r.get("link")
+                                if not url:
+                                    continue
+                                content = fetch_page(url)
+                                if content:
+                                    extracted.append(content[:800])
+                            except Exception as e:
+                                logger.warning(f"[BROWSE] Failed to fetch: {e}")
+                                continue
+
+                        if not extracted:
+                            msg = "I found sources but couldn't extract content."
+                            yield f"data: {json.dumps({'type': 'text', 'text': msg})}\n\n"
+                        else:
+                            context = "\n---\n".join(extracted)
+                            logger.info("[GROQ] starting streaming for browsing query")
+                            stream = groq_response_streaming(f"Answer using these sources:\n{context}\n\nQuestion: {user_input}")
+                            if stream is None:
+                                yield f"data: {json.dumps({'type': 'text', 'text': '[Groq API not available]'})}\n\n"
+                            else:
+                                full_text = ""
+                                for chunk in stream:
+                                    logger.info(f"[GROQ] chunk: {chunk}")
+                                    full_text += chunk
+                                    yield f"data: {json.dumps({'type': 'text', 'text': chunk})}\n\n"
+                                if full_text:
+                                    save_message(chat_id, user_id, "assistant", full_text)
                 
-                # Step 5: Stream response with verification
-                full_response = response_text + verification_badge
-                
-                # Add sources if available
-                if quality_check['verified_sources']:
-                    full_response += "\n\nVerified Sources:"
-                    for src in quality_check['verified_sources'][:3]:
-                        full_response += f"\n- {src.get('title', 'Source')}: {src.get('url', 'No URL')}"
-                
-                # Stream the response
-                for word in full_response.split():
-                    chunk = word + " "
-                    yield f"data: {json.dumps({'type': 'text', 'text': chunk})}\n\n"
-                
-                # Save assistant response
-                save_message(chat_id, user_id, "assistant", full_response)
-                
-                # Final metadata
-                yield f"data: {json.dumps({'type': 'metadata', 'confidence': quality_check['confidence_level'], 'verified': quality_check['web_verified'], 'sources_count': len(quality_check['verified_sources'])})}\n\n"
-                
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            
             except Exception as e:
-                logger.error(f"Error in verified response: {str(e)}")
+                logger.error(f"[ERROR] Streaming error: {e}", exc_info=True)
                 yield f"data: {json.dumps({'type': 'error', 'text': str(e)})}\n\n"
-        
-        return Response(generate_verified(), mimetype="text/event-stream")
-    
+
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+    except Exception:
+        logger.error("[ASK] Fatal error", exc_info=True)
+        def error_gen():
+            yield f"data: {json.dumps({'type': 'error', 'text': 'Internal server error'})}\n\n"
+        return StreamingResponse(error_gen(), media_type="text/event-stream", status_code=500)
+
+@app.get("/chats")
+async def chats_list(req: Request):
+    """Get list of chats for current user"""
+    try:
+        user_id = "debug-user"
+        chat_list = get_chat_list(user_id)
+        return JSONResponse({"chats": chat_list})
     except Exception as e:
-        logger.error(f"Error in /ask-verified: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"[CHATS] Error: {e}", exc_info=True)
+        return JSONResponse({"chats": []}, status_code=200)
 
 
-# =========================
-# CHAT LIST
-# =========================
-@app.route("/chats")
-def chats():
-    user_id, is_guest = get_current_user_from_request()
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    return jsonify(get_chat_list(str(user_id)))
-
-# =========================
-# CHAT HISTORY
-# =========================
-@app.route("/history/<chat_id>")
-def history(chat_id):
-    user_id, is_guest = get_current_user_from_request()
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    return jsonify(get_chat_history(chat_id, str(user_id)))
+@app.get("/history/{chat_id}")
+async def chat_history(chat_id: str, req: Request):
+    """Get chat history"""
+    try:
+        user_id = "debug-user"
+        messages = get_chat_history(chat_id, user_id)
+        return JSONResponse({"messages": messages})
+    except Exception as e:
+        logger.error(f"[HISTORY] Error: {e}", exc_info=True)
+        return JSONResponse({"messages": []}, status_code=200)
 
 
-# =========================
-# DELETE CHAT
-# =========================
-@app.route("/delete/<chat_id>", methods=["DELETE"])
-def delete_chat_route(chat_id):
-    user_id, is_guest = get_current_user_from_request()
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    success = delete_chat(chat_id, str(user_id))
-    if not success:
-        return jsonify({"error": "Chat not found or not authorized"}), 403
-    
-    return jsonify({"status": "ok"})
+@app.delete("/delete/{chat_id}")
+async def delete_chat_endpoint(chat_id: str, req: Request):
+    """Delete a chat"""
+    try:
+        user_id = "debug-user"
+        delete_chat(chat_id, user_id)
+        return JSONResponse({"status": "deleted"})
+    except Exception as e:
+        logger.error(f"[DELETE] Error: {e}", exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
-# =========================
-# MODE TOGGLE
-# =========================
-@app.route("/mode", methods=["GET", "POST"])
-def toggle_mode():
-    if request.method == "POST":
-        mode = request.json.get("mode", "online")
-        current_mode["online"] = (mode == "online")
-        
-        # Get current connectivity info for response
-        connectivity = check_connectivity()
-        return jsonify({
-            "status": "ok",
-            "mode": mode,
-            "detectedOnline": connectivity["online"],
-            "detectedStatus": connectivity["status"]
+@app.get("/mode")
+async def get_mode():
+    """Get current mode (online/offline)"""
+    return JSONResponse({"mode": "online"})
+
+
+@app.post("/mode")
+async def set_mode(req: Request):
+    """Set mode (online/offline)"""
+    try:
+        data = await req.json()
+        mode = data.get("mode", "online")
+        return JSONResponse({"mode": mode})
+    except Exception:
+        return JSONResponse({"mode": "online"})
+
+
+@app.get("/status/connectivity")
+async def connectivity_status():
+    """Get connectivity status"""
+    try:
+        online = is_online()
+        return JSONResponse({
+            "online": online,
+            "status": "Online (Using Groq Cloud Inference)" if online else "Offline",
+            "mode": "[GROQ - Ultra-Fast Cloud Inference]"
+        })
+    except Exception:
+        return JSONResponse({
+            "online": True,
+            "status": "Online (Using Groq Cloud Inference)",
+            "mode": "[GROQ - Ultra-Fast Cloud Inference]"
         })
 
-    # GET request: return current mode and detected connectivity
-    connectivity = check_connectivity()
-    return jsonify({
-        "mode": "online" if current_mode["online"] else "offline",
-        "detectedOnline": connectivity["online"],
-        "detectedStatus": connectivity["status"]
-    })
 
+print(">>> ROUTES OK <<<")
+print(">>> IMPORT COMPLETE <<<")
 
-# =========================
-# NO CACHE (DEV FRIENDLY)
-# =========================
-@app.after_request
-def no_cache(response):
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
-# =========================
-# START SERVER
-# =========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    print(">>> BEFORE RUN <<<")
+    sys.stdout.flush()
+    sys.stderr.flush()
+    try:
+        import uvicorn
+        uvicorn.run(
+            app,
+            host="127.0.0.1",
+            port=8080,
+            log_level="info"
+        )
+    except Exception as e:
+        print(f">>> ERROR RUNNING: {e} <<<", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+    finally:
+        print(">>> AFTER RUN <<<")
+        sys.stdout.flush()
+        sys.stderr.flush()
+

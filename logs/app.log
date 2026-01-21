@@ -4,3 +4,202 @@
 2026-01-20 11:51:28,925 - app - WARNING - Rate limit exceeded: 429 Too Many Requests: 50 per 1 hour
 2026-01-20 11:51:43,925 - app - WARNING - Rate limit exceeded: 429 Too Many Requests: 50 per 1 hour
 2026-01-20 12:48:51,998 - app - WARNING - Response blocked: Wikipedia-only source detected for query: when is today?
+2026-01-20 23:58:13,793 - app - ERROR - Error in /ask endpoint: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 604, in get_json
+    return self.on_json_loading_failed(None)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 647, in on_json_loading_failed
+    raise UnsupportedMediaType(
+werkzeug.exceptions.UnsupportedMediaType: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2026-01-21 00:02:46,355 - app - ERROR - Error in /ask endpoint: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+Traceback (most recent call last):
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 611, in get_json
+    rv = self.json_module.loads(data)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\json\provider.py", line 187, in loads
+    return json.loads(s, **kwargs)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 620, in get_json
+    rv = self.on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 645, in on_json_loading_failed
+    raise BadRequest(f"Failed to decode JSON object: {e}")
+werkzeug.exceptions.BadRequest: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 00:14:36,941 - app - ERROR - Error in /ask endpoint: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+Traceback (most recent call last):
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 611, in get_json
+    rv = self.json_module.loads(data)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\json\provider.py", line 187, in loads
+    return json.loads(s, **kwargs)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 620, in get_json
+    rv = self.on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 645, in on_json_loading_failed
+    raise BadRequest(f"Failed to decode JSON object: {e}")
+werkzeug.exceptions.BadRequest: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 00:18:25,534 - app - ERROR - Error in /ask endpoint: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+Traceback (most recent call last):
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 611, in get_json
+    rv = self.json_module.loads(data)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\json\provider.py", line 187, in loads
+    return json.loads(s, **kwargs)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 620, in get_json
+    rv = self.on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 645, in on_json_loading_failed
+    raise BadRequest(f"Failed to decode JSON object: {e}")
+werkzeug.exceptions.BadRequest: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 00:27:21,258 - app - ERROR - Error in /ask endpoint: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+Traceback (most recent call last):
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 611, in get_json
+    rv = self.json_module.loads(data)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\json\provider.py", line 187, in loads
+    return json.loads(s, **kwargs)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 620, in get_json
+    rv = self.on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 645, in on_json_loading_failed
+    raise BadRequest(f"Failed to decode JSON object: {e}")
+werkzeug.exceptions.BadRequest: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 00:38:12,011 - app - ERROR - Error in /ask endpoint: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 2 column 5 (char 7)
+Traceback (most recent call last):
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 611, in get_json
+    rv = self.json_module.loads(data)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\json\provider.py", line 187, in loads
+    return json.loads(s, **kwargs)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 2 column 5 (char 7)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 467, in ask
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 558, in json
+    return self.get_json()
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 620, in get_json
+    rv = self.on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\wrappers.py", line 131, in on_json_loading_failed
+    return super().on_json_loading_failed(e)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\wrappers\request.py", line 645, in on_json_loading_failed
+    raise BadRequest(f"Failed to decode JSON object: {e}")
+werkzeug.exceptions.BadRequest: 400 Bad Request: Failed to decode JSON object: Expecting property name enclosed in double quotes: line 2 column 5 (char 7)
+2026-01-21 14:16:29,378 - __main__ - ERROR - [ASK] Fatal error
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 249, in ask
+    data = await req.json() or {}
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\requests.py", line 251, in json
+    self._json = json.loads(body)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 14:19:13,425 - __main__ - ERROR - [ASK] Fatal error
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 249, in ask
+    data = await req.json() or {}
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\requests.py", line 251, in json
+    self._json = json.loads(body)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 14:19:47,550 - __main__ - ERROR - [ASK] Fatal error
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 249, in ask
+    data = await req.json() or {}
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\requests.py", line 251, in json
+    self._json = json.loads(body)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+2026-01-21 14:20:23,740 - __main__ - ERROR - [ASK] Fatal error
+Traceback (most recent call last):
+  File "C:\Users\k\Desktop\my_ai_assistant\app.py", line 249, in ask
+    data = await req.json() or {}
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\site-packages\starlette\requests.py", line 251, in json
+    self._json = json.loads(body)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\k\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)

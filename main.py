@@ -12,12 +12,11 @@ from math_solver import MathSolver
 from essay_writer import EssayWriter
 
 # =========================
-# MODE SWITCH
+# CONFIGURATION
 # =========================
-ONLINE_MODE = True   # True = Ollama/Groq | False = Offline (FAISS)
+ONLINE_MODE = True   # Using Groq (ultra-fast cloud inference)
 OFFLINE_ENABLED = os.getenv('OFFLINE_ENABLED', 'false').lower() == 'true'
-USE_GROQ = os.getenv('USE_GROQ', 'false').lower() == 'true'  # Use Groq instead of Ollama
-GROQ_ENABLED = os.getenv('GROQ_ENABLED', 'false').lower() == 'true'
+GROQ_ENABLED = True  # Groq is the only inference engine
 
 # ---------- SETTINGS ----------
 DATA_FOLDER = "data"
@@ -41,31 +40,8 @@ def load_system_prompt(filename="system_prompt.txt"):
 
 SYSTEM_PROMPT = load_system_prompt()
 
-# Lazy-load Ollama client (avoid connection attempts at import time)
-def get_ollama_response(prompt, system_prompt=None):
-    """Safely call Ollama with system prompt injection"""
-    try:
-        from ollama_client import ollama_response
-        result = ollama_response(prompt, system_prompt=system_prompt)
-        if result is None:
-            return "Sorry, I'm having trouble processing your request right now. Please try again in a moment."
-        return result
-    except Exception as e:
-        import traceback
-        print(f"  [OLLAMA ERROR] {e}")
-        print(f"  [OLLAMA TRACEBACK] {traceback.format_exc()}")
-        return "Sorry, I'm having trouble processing your request right now. Please try again in a moment."
 
-def get_ollama_response_streaming(prompt, system_prompt=None):
-    """Stream response from Ollama with system prompt injection"""
-    try:
-        from ollama_client import ollama_response_streaming
-        return ollama_response_streaming(prompt, system_prompt=system_prompt)
-    except Exception as e:
-        print(f"  Ollama streaming unavailable: {e}")
-        return []
-
-# Lazy-load Groq client (faster inference!)
+# Lazy-load Groq client (ultra-fast cloud inference!)
 def get_groq_response(prompt, system_prompt=None):
     """Safely call Groq with system prompt injection"""
     try:
@@ -89,26 +65,14 @@ def get_groq_response_streaming(prompt, system_prompt=None):
         print(f"  Groq streaming unavailable: {e}")
         return []
 
-# Smart inference selection - Groq for online, Ollama for offline
+# Groq is the exclusive inference engine
 def get_ai_response(prompt, system_prompt=None, mode="online"):
-    """Get AI response - uses Groq (faster) for online, Ollama for offline"""
-    # For online queries, use Groq if available (fast inference)
-    if mode == "online" and USE_GROQ and GROQ_ENABLED:
-        return get_groq_response(prompt, system_prompt=system_prompt)
-    # For offline queries or if Groq disabled, use Ollama (reliable local inference)
-    else:
-        return get_ollama_response(prompt, system_prompt=system_prompt)
+    """Get AI response from Groq (ultra-fast cloud inference)"""
+    return get_groq_response(prompt, system_prompt=system_prompt)
 
 def get_ai_response_streaming(prompt, system_prompt=None, mode="online"):
-    """Stream AI response - uses Groq (faster) for online, Ollama for offline"""
-    # For online queries, use Groq if available (fast inference)
-    if mode == "online" and USE_GROQ and GROQ_ENABLED:
-        return get_groq_response_streaming(prompt, system_prompt=system_prompt)
-    # For offline queries or if Groq disabled, use Ollama (reliable local inference)
-    else:
-        return get_ollama_response_streaming(prompt, system_prompt=system_prompt)
-        print(f"  Ollama streaming unavailable: {e}")
-        return []
+    """Stream AI response from Groq (ultra-fast cloud inference)"""
+    return get_groq_response_streaming(prompt, system_prompt=system_prompt)
 
 # GREETING KEYWORDS (for detection only)
 GREETING_KEYWORDS = [
@@ -668,7 +632,7 @@ def handle_note(user_input):
         return "Did you want to save or recall a note?"
 
 def translate_text(user_input):
-    return get_ollama_response(user_input)
+    return get_ai_response(user_input)
 
 def programming_helper(user_input):
     if not OFFLINE_ENABLED:

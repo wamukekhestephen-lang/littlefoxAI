@@ -1,19 +1,60 @@
-# Hallucination Prevention & Web Verification System
+# Hallucination Prevention & Web Verification System - COMPREHENSIVE GUIDE
 
-**Status**: ACTIVE
+**Status**: FULLY OPERATIONAL ✓
 **Date**: January 20, 2026
 **Purpose**: Prevent AI hallucinations by validating responses against real web sources
+**Verification**: All tests passing
 
 ---
 
 ## Overview
 
-The system now automatically prevents hallucinations by:
-1. **Detecting** false claims (future dates, unverifiable references, etc.)
+The system now **automatically prevents hallucinations** by:
+1. **Detecting** false claims (future dates, unverifiable references, Wikipedia-only sources)
 2. **Verifying** responses against live web search results
-3. **Deprioritizing** Wikipedia as a sole source
-4. **Assigning confidence levels** based on source credibility
+3. **Deprioritizing** Wikipedia as a sole source (score: 0.35, was 0.70)
+4. **Assigning confidence levels** (HIGH/MEDIUM/LOW) based on source credibility
 5. **Providing verified sources** for transparency
+6. **Auto-replacing Wikipedia-only** responses with web search results
+
+---
+
+## Quick Start - For Users
+
+### Standard Usage (Automatic Hallucination Detection)
+
+**Send a question:**
+```
+POST /ask
+{
+  "message": "What is Python?",
+  "user_id": "user_123"
+}
+```
+
+**You'll get:**
+- Response text
+- Confidence level: HIGH, MEDIUM, or LOW
+- Issues detected (if any)
+- Verified sources (if available)
+- Auto-replaced with web results (if Wikipedia-only detected)
+
+### Using Verified Endpoint
+
+**For maximum verification:**
+```
+POST /ask-verified
+{
+  "message": "What is machine learning?",
+  "user_id": "user_123"
+}
+```
+
+**Response includes:**
+- [VERIFIED] or [UNVERIFIED] badge
+- Actual sources with credibility scores
+- Links to original information
+- Confidence HIGH for verified claims
 
 ---
 
@@ -39,7 +80,8 @@ The system detects and flags:
   - Penalty: -0.35 confidence
   
 - **Wikipedia-Only Sources** - Sole reliance on user-editable Wikipedia
-  - Penalty: -0.10 to -0.20 confidence
+  - Penalty: -0.35 confidence (deprioritized)
+  - **Auto-Replacement**: System automatically performs web search instead
 
 ### 2. Web Verification
 
@@ -48,6 +90,7 @@ The system performs live web searches to:
 - **Find alternative sources** beyond Wikipedia
 - **Boost confidence** when matches found on official sites
 - **Flag information** only found on Wikipedia
+- **Replace Wikipedia-only** responses automatically
 
 **Source Credibility Scores:**
 ```

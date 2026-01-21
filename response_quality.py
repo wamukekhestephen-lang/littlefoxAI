@@ -764,7 +764,7 @@ def check_response(response_text: str, sources: List[Dict] = None, response_type
     Args:
         response_text: The response to validate
         sources: List of source dictionaries with 'url', 'title', 'timestamp'
-        response_type: Type of response ('web_search', 'ollama', 'general')
+        response_type: Type of response ('web_search', 'groq', 'general')
         query: The original user query (for context checking)
     
     Returns:

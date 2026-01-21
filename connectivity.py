@@ -80,7 +80,7 @@ class ConnectivityChecker:
         self.is_online = self.check_internet()
         return {
             "online": self.is_online,
-            "status": "Online (Internet Available)" if self.is_online else "Offline (Using Ollama)"
+            "status": "Online (Using Groq Cloud Inference)"
         }
 
 

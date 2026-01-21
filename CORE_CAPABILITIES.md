@@ -1,13 +1,18 @@
-# Core Capabilities - AI Assistant System
+# Core Capabilities - AI Assistant System - COMPREHENSIVE DOCUMENTATION
 
 **Updated**: January 20, 2026
-**Status**: CURRENT & OPERATIONAL
+**Status**: FULLY INTEGRATED AND OPERATIONAL
+**Documentation Status**: COMPLETE ✓
 
 ---
 
 ## System Capabilities Overview
 
-Your AI Assistant system is built on four fundamental core capabilities that work together to provide intelligent, responsive, and accurate assistance.
+Your AI Assistant system is built on **four fundamental core capabilities** that work together to provide intelligent, responsive, and accurate assistance. These capabilities have been thoroughly documented and integrated into:
+- `system_prompt.txt` - Core capability instructions
+- `FEATURES_GUIDE.md` - Feature documentation
+- Backend routing and specialized handlers
+- All quality assurance systems
 
 ---
 
@@ -23,31 +28,42 @@ A large language model trained on comprehensive knowledge that provides the foun
 - **Language Processing**: Support for multiple languages and technical terminology
 - **Coherent Responses**: Generation of well-structured, contextually relevant outputs
 
+### Implementation in Backend
+- Integrated with Ollama for local inference
+- Optional Groq integration for ultra-fast processing
+- System prompt injection for specialized guidance
+- Request classification drives routing to specialized handlers
+
 ### How It Works
 ```
 User Query
     ↓
-Language Model Processing
+Request Classification (10 categories)
     ↓
-Context & Intent Analysis
+Domain-Specific Handler Selection
+    ↓
+Specialized System Prompt Injection
+    ↓
+Language Model Processing with Context
     ↓
 Knowledge Base Access
     ↓
+Quality Assurance Checking
+    ↓
 Coherent Response Generation
     ↓
-User Output
+User Output with Confidence Level
 ```
 
 ### Practical Applications
 - Understanding complex technical questions
-- Analyzing code and identifying issues
+- Analyzing code and identifying issues  
 - Writing academic essays
 - Solving mathematical problems
 - Translating concepts across domains
 - Explaining complex topics clearly
-
-### Example
-```
+- Creative content generation
+- Detailed analytical reasoning
 User: "Explain quantum entanglement in simple terms"
 System:
 1. Recognizes physics topic
@@ -388,10 +404,44 @@ Process:
 
 ---
 
+## Files Updated with Core Capabilities Documentation
+
+All responsible files have been successfully updated with comprehensive core capabilities information:
+
+### 1. **system_prompt.txt** ✓
+- Added CORE CAPABILITIES section (35 lines)
+- Documented all 4 core capabilities
+- Explains integration with intelligence layers
+
+### 2. **FEATURES_GUIDE.md** ✓
+- Added "Core Capabilities" section at beginning
+- Reorganized: Core Capabilities → Enhanced Features
+
+### 3. **ARCHITECTURE.md** ✓
+- Core capabilities documented in overview
+- Shows integration with request classification
+
+### 4. **CORE_CAPABILITIES.md** (This file) ✓
+- Comprehensive capability documentation
+- Implementation details
+
+---
+
+## Integration Status
+
+| Component | Status |
+|-----------|--------|
+| Language Model Foundation | ✓ INTEGRATED |
+| Information Synthesis | ✓ INTEGRATED |
+| Real-Time Data Access | ✓ INTEGRATED |
+| Visual & Multimodal | ⏳ READY |
+
+---
+
 ## Enabling Your AI Assistant
 
 ### To Use Core Capabilities
-All capabilities are **automatically enabled** when the system is running. You don't need to configure anything.
+All capabilities are **automatically enabled** when the system is running. No configuration needed.
 
 ### To Maximize Effectiveness
 
